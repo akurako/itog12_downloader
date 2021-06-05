@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class DownloadQueue {
+    //CopyOnWriteArrayList<File> fileList = new CopyOnWriteArrayList<>();
     ArrayList<File> fileList = new ArrayList<>();
     Downloader downloader = new Downloader();
-    FileReader data_read ;
-    Scanner scan ;
+    FileReader data_read;
+    Scanner scan;
     String fileListLocal = "fileList";
-
+    //AtomicLong total_bytes = new AtomicLong(0);
+    long total_bytes;
 
 
     public DownloadQueue(String fileListURL) throws FileNotFoundException {
@@ -24,26 +26,46 @@ public class DownloadQueue {
         while (scan.hasNext() == true) {
             String[] file = new String[2];
             file = scan.nextLine().split(",");
-            fileList.add(new File(file[0],file[1]));
+            fileList.add(new File(file[0], file[1]));
         }
-        System.out.println( fileList.size() + " files ready to download.");
+        System.out.println(fileList.size() + " files ready to download.");
 
     }
 
-    public void downloadAll(){
-        if (fileList.size() != 0) {
+    public void totalBytesRecieved(){
+        System.out.println("Total bytes recieved: "+ total_bytes);
+    }
+
+    public void downloadAllMultiThread(int max_threads) throws InterruptedException {
+        int maximum_threads = max_threads;
+        total_bytes = 0;
+        //total_bytes.set(0);
+        while (fileList.size() > 0 || Thread.activeCount() > 2 ) {
             for (File file : fileList) {
-                downloader.download(file.url, file.localFile);
+                if (Thread.activeCount() < max_threads + 2) {
+                    new Thread(new DownloaderMultiThread(file, this)).start();
+                    fileList.remove(file);
+                }
             }
+            totalBytesRecieved();
+            Thread.sleep(100);
         }
-
+        totalBytesRecieved();
     }
+    //    public void downloadAll(int max_threads) throws InterruptedException {
+    //        int maximum_threads = max_threads;
+    //        total_bytes.set(0);
+    //        while (fileList.size() > 0 || Thread.activeCount() > 2 ) {
+    //            for (File file : fileList) {
+    //                if (Thread.activeCount() < max_threads + 2) {
+    //                    new Thread(new DownloaderMultiThread(file, this)).start();
+    //                    fileList.remove(file);
+    //                }
+    //            }
+    //            totalBytesRecieved();
+    //            Thread.sleep(100);
+    //        }
+    //        totalBytesRecieved();
+    //    }
 
-//    public void downloadAllMultiThread(){
-//        if (fileList.size() != 0) {
-//            for (File file : fileList) {
-//                new Thread(new DownloaderMultiThread(file.url,file.localFile)).start();
-//            }
-//        }
-//    }
 }
